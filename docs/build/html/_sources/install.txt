@@ -1,0 +1,8 @@
+Install
+========================================
+
+Dependencies
+----------------------------------------
+ * pyOpenCL - install via easy_install -U pyopencl
+   * numpy
+   * OpenCL
