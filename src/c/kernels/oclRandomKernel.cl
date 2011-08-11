@@ -23,26 +23,20 @@ return *z=(A**z+C);
      );
   }
 
-typedef struct{
-  unsigned s1;
-  unsigned s2;
-  unsigned s3;
-  unsigned s4;
-} seed_t;
 
 __kernel void GPUrand(
    __global float* d_Rand,
-   __global seed_t* d_Seed, //change
+   __global float* d_Seed[], //change
    const unsigned int nPerRNG,
    const int RNG_COUNT)
 {
    int globalID = get_global_id(0);
    float rfl;
-   unsigned z1,z2,z3,z4;
-   z1 = d_Seed[globalID].s1;
-   z2 = d_Seed[globalID].s2;
-   z3 = d_Seed[globalID].s3;
-   z4 = d_Seed[globalID].s4;
+   float z1,z2,z3,z4;
+   z1 = d_Seed[globalID + 0];
+   z1 = d_Seed[globalID + 1];
+   z2 = d_Seed[globalID + 2];
+   z3 = d_Seed[globalID + 3];
    for (int i=0;i<nPerRNG;i++)
        {
        d_Rand[globalID+i*RNG_COUNT] = HybridTaus(&z1,&z2,&z3,&z4);

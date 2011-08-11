@@ -32,7 +32,8 @@ class Kernel:
         self.ctx = cl.create_some_context()
         self.queue = cl.CommandQueue(self.ctx)
         self.buffers = []
-        self.global_size = 0
+        # This is a tuple describing the dimensions of the output
+        self.global_size = (0,)
 
     def __call__(self, *args, **kwargs):
         """

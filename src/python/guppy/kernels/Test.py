@@ -40,5 +40,6 @@ class Test(Kernel):
         """
         self.program.sum(self.queue, self.global_size, None, *self.buffers)
         a_plus_b = numpy.empty(self.global_size, dtype = self.dtype)
+        # Internal? copy of output from gpu
         cl.enqueue_copy(self.queue, a_plus_b, self.buffers[-1])
         return la.norm(a_plus_b - self.a_plus_b)
