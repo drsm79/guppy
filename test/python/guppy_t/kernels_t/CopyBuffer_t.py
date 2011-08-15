@@ -10,7 +10,7 @@ class CopyBuffer_t(unittest.TestCase):
     def testCall(self):
         buffer_cp = CopyBuffer()
 
-        input_array = numpy.array([1,2,3,4,5])
+        input_array = numpy.array([1,2,3,4,5], dtype=numpy.float32)
 
         result = buffer_cp(input_array)
         print result

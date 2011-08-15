@@ -15,8 +15,8 @@ class AddBuffer(Kernel):
         Add up two 5-element arrays
         """
         mf = cl.mem_flags
-        input_arr = numpy.array(range(0,10), dtype=numpy.float32)
-	i_two = numpy.array(range(10,0,-1), dtype=input_arr.dtype)
+        input_arr = numpy.array(range(0,10000), dtype=numpy.float32)
+	i_two = numpy.array(range(10000,0,-1), dtype=input_arr.dtype)
 
         self.dtype = input_arr.dtype
         self.global_size = input_arr.shape
