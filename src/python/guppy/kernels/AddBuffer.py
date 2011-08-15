@@ -10,7 +10,7 @@ class AddBuffer(Kernel):
     """
     kernel_file = "addBuffer.cl"
 
-    def _create_buffers(self):
+    def _create_buffers(self, parallelism):
         """
         Add up two 5-element arrays
         """
@@ -18,7 +18,7 @@ class AddBuffer(Kernel):
 
         input_arr = numpy.array(range(0,100))
 
-        parallelism = numpy.long(1)
+        parallelism = numpy.long(parallelism)
         self.buffers.append((parallelism,))
 
         self.dtype = input_arr.dtype
@@ -36,10 +36,9 @@ class AddBuffer(Kernel):
         Run the kernel (self.program).
         """
         # This is broken
-        print self.global_size
-        self.program.sum(self.queue, self.global_size, *self.buffers, g_times_l=True)
+        self.program.sum(self.queue, self.global_size, None, *self.buffers)
         # Make an empty array to copy data into
         a_plus_b = numpy.empty(100, dtype=self.dtype)
         # Enqueue the copy
         cl.enqueue_copy(self.queue, a_plus_b, self.buffers[-1])
-        print a_plus_b
+        return a_plus_b

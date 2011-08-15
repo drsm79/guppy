@@ -26,7 +26,7 @@ class Random(Kernel):
         #       RNG_COUNT = number of threads used
 
         self.parallelism = numpy.long(parallelism)
-        self.buffers.append((self.parallelism,))
+        #self.buffers.append((self.parallelism,))
         self.global_size = (size,)
 
         output_size = numpy.float32(size).nbytes * size * 20
@@ -59,7 +59,7 @@ class Random(Kernel):
         Run the kernel (self.program). Subclasses should overwrite this.
         """
         # This is broken
-        self.program.GPUrand(self.queue, self.global_size, *self.buffers, g_times_l=True)
+        self.program.GPUrand(self.queue, self.global_size, None, *self.buffers, g_times_l=True)
         # print len(self.buffers)
         # print self.buffers[1].hostbuf
         # print self.buffers[1].get_info()

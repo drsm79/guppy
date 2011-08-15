@@ -12,7 +12,7 @@ unsigned TausStep(unsigned *z, int S1, int S2, int S3, unsigned M)
 return *z=(A**z+C);
 }
 
- float HybridTaus(unsigned *z1,unsigned *z2,unsigned *z3,unsigned *z4)
+ float HybridTaus(float *z1,float *z2,float *z3,float *z4)
  {
   // Combined period is lcm(p1,p2,p3,p4)~ 2^121
   return 2.3283064365387e-10 * (              // Periods
@@ -32,7 +32,7 @@ __kernel void GPUrand(
 {
    int globalID = get_global_id(0);
    float rfl;
-   float z1,z2,z3,z4;
+   float* z1,z2,z3,z4;
    z1 = d_Seed[globalID + 0];
    z1 = d_Seed[globalID + 1];
    z2 = d_Seed[globalID + 2];
