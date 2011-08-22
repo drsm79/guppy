@@ -37,7 +37,7 @@ class Gaussian1DIntegrator(Kernel):
 		nPerThread = math.ceil(float(block_rands)/float(threads))
 	       	self.global_size = (threads*blocks,)
 		self.local_size = (threads,)
-		self.resultshape = (blocks,)	
+		self.resultshape = (blocks*threads,)	
 	
 
 
@@ -57,7 +57,6 @@ class Gaussian1DIntegrator(Kernel):
 		#write arguments to buffer as nPerRNG
 
 	        arg_arr = numpy.array([nPerThread, blocks, threads,mean, sd, low, high], dtype=numpy.float32)
-		print arg_arr
 		arg_bufr = cl.Buffer(self.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=arg_arr)
 	        self.buffers.append(arg_bufr)
 
