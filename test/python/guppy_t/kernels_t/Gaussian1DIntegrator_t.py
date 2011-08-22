@@ -15,7 +15,7 @@ class Random_t(TimedTest):
 		self.mean=0.0
 		self.sd=1.0
 		self.low=-1.0
-		self.high=1.0
+		self.high=0.4
 		self.blocks = 16
 		self.threads = 64
 		self.shape=(self.blocks,)	

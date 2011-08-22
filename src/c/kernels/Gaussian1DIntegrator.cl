@@ -106,27 +106,11 @@ __kernel void Gaussian1DIntegrator(
 		}
 
 
-// Reduction method that DOESNT WORK
-//
-//		for (stride = get_local_size(0)/2; stride > 0 ; stride /=2)
-//			{
-//			barrier(CLK_LOCAL_MEM_FENCE);
-//			if (localID < stride)
-//				{
-//				d_Bins[localID][2] += d_Bins[localID+stride][2];
-//				}
-//			}
-//
-//		if (localID == 0)
-//			{
-//			d_Results[groupID] = d_Bins[localID][2]*l_THREADWIDTH;
-//			}	
-//		 barrier(CLK_LOCAL_MEM_FENCE);
+//no reduction, just copies local memory to global
 
-//Bodged output, no reduction, just copies local memory to global
-
-		for (iBin=0; iBin< l_THREADS; iBin++)
+		if (localID ==0) for (iBin=0; iBin< l_THREADS; iBin++)
 			{
+			barrier(CLK_LOCAL_MEM_FENCE);
 			d_Results[groupID*l_THREADS+iBin]  =d_Bins[iBin][2]*l_THREADWIDTH;
 			}
 		
