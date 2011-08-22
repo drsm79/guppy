@@ -13,7 +13,7 @@ class Kernel:
     """
     kernel_file = ''
 
-    def __init__(self, cl_file_location='../../../c/kernels'):
+    def __init__(self, cl_file_location='../../../c/kernels', interactive=True):
         """
         Initialising the Kernel loads the C code from kernel_file and sets up
         the necessary CommandQueue and context.
@@ -29,7 +29,9 @@ class Kernel:
             self.kernel_string = open(filename).read()
         else:
             self.kernel_string = ""
-        self.ctx = cl.create_some_context()
+        self.ctx = cl.create_some_context(interactive=interactive)
+	# This should be a logging statement...
+	print 'Using device: %s' % self.ctx.get_info(cl.context_info.DEVICES)
         self.queue = cl.CommandQueue(self.ctx)
         self.buffers = []
         # This is a tuple describing the dimensions of the output
