@@ -58,15 +58,6 @@ b /= -2*yGauss.sd*yGauss.sd;
 a +=b;
 temp = exp(a);
 temp /= xGauss.sd*yGauss.sd*2*PI;
-
-
-
-//a = pow(x-xGauss.mean, 2);
-//b = pow(y-yGauss.mean, 2); //<<----- this is messing up!
-//temp = a/(-2*pow(xGauss.sd,2)); //bug returns 0s if a = b = and temp =a
-//temp = b/(-2*pow(yGauss.sd,2)); 
-
-
 return temp;
 }
 

@@ -11,15 +11,15 @@ class Random_t(TimedTest):
 
 	def test_time(self):
 	#Run the kernel
-		self.n_rands = 10000
+		self.n_rands = 30000
 		self.xmean=0.0
 		self.xsd=1.0
-		self.xlow=-1.0
-		self.xhigh=1.0
+		self.xlow=-0.6
+		self.xhigh=0.4
 		self.ymean=0.0
 		self.ysd=1.0
-		self.ylow=-1.0
-		self.yhigh=1.0
+		self.ylow=-0.8
+		self.yhigh=0.1
 
 		self.blocks = 32
 		self.threads = 256
