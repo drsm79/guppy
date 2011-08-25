@@ -60,11 +60,12 @@ return temp;
 
 void Gaussian1DIntegrator( 
    float * d_Results,
-   int globalID, int localID,
+   int groupID, int localID,
    unsigned int d_Seed[4],
    const float* args,
    float (*d_Bins)[3])
 {
+	int globalID;
 	int iRand, iBin;					//for loop variables
    	float rf;						//random float (rf)
    	int l_NPERTHREAD = args[0];				//local, number of randoms produced by this thread
@@ -74,11 +75,9 @@ void Gaussian1DIntegrator(
 	float l_SD = args[4];	
  	float l_LOW = args[5];					//local lower and upper limits to integrate between
 	float   l_HIGH = args[6];
-   	float bl_low, bl_high;					//local limits of the block
-	float l_INTRANGE = (float)(l_HIGH)-(float)(l_LOW);
+   	float th_low, th_high;					//local limits of the block
 	float l_BLOCKWIDTH = (l_HIGH-l_LOW)/l_BLOCKS;		//width of the block
    	float l_THREADWIDTH = l_BLOCKWIDTH/l_THREADS;		//width of a bin within the block
-
 	unsigned z1,z2,z3,z4;					//local seeds for random number generator, unique to thread
 	float temp;
 	unsigned int stride;
@@ -89,32 +88,25 @@ void Gaussian1DIntegrator(
    	z2 = d_Seed[2];
    	z3 = d_Seed[3];
 
-
+	globalID = groupID*l_THREADS+localID;
 	//Get the dimensions of this workgroup;
-	bl_low = (globalID*l_BLOCKWIDTH)+l_LOW;
-	bl_high = ((globalID+1)*l_BLOCKWIDTH)+l_LOW;
+	th_low = (globalID*l_THREADWIDTH)+l_LOW;
+	th_high = ((globalID+1)*l_THREADWIDTH)+l_LOW;
 
 	//loop over the random number generation
 	for (iRand=0;iRand<l_NPERTHREAD;iRand+=1)
 		{
 		//Get uniform random number, and scale to range [l_LOW, l_HIGH]
 		rf = HybridTaus(&z1,&z2,&z3,&z4);
-		rf = ScaleRange(rf, bl_low, bl_high);
+		rf = ScaleRange(rf, th_low, th_high);
 		//Bin the number
-		if ((rf>bl_low) && (rf<=bl_high))
-			for (iBin=0; iBin < l_THREADS; iBin++)
-				{
-				//Put number in correct bin
-				if ((rf > (iBin*l_THREADWIDTH)+bl_low) && (rf <= ((iBin+1)*l_THREADWIDTH)+bl_low))
+		if ((rf>th_low) && (rf<=th_high))
 					{
-
 					//bin the number
-					d_Bins[iBin][0] += 1;
-					d_Bins[iBin][1] += fnGauss(rf, l_MEAN, l_SD);
-					d_Bins[iBin][2] = d_Bins[iBin][1]/d_Bins[iBin][0];
-					break;
+					d_Bins[localID][0] += 1;
+					d_Bins[localID][1] += fnGauss(rf, l_MEAN, l_SD);
+					d_Bins[localID][2] = d_Bins[localID][1]/d_Bins[localID][0];
 					}
-				} //end iBin loop
 		}
 }
 
@@ -124,11 +116,11 @@ int main(int argc, char* argv[])
 	float *results;
 	float *args;
 	unsigned  seeds[4];
-	int globalID, localID,  i;
-	int threads = 128;			//change the threads per block
+	int groupID, localID,  i;
+	int threads = 256;			//change the threads per block
 	int blocks =32;				//change the number of blocks
 	float low = -1.0;			//lower limit
-	float high = 0.4;			//upper limit
+	float high = 1.0;			//upper limit
 
 	//set the arguments
 	args = (float *)malloc(sizeof(float)*7);
@@ -144,7 +136,7 @@ int main(int argc, char* argv[])
 	//loop over each block
 	results = (float *)malloc(sizeof(float)*blocks);
 	time1= get_time();
-	for (globalID = 0; globalID < blocks; globalID++)
+	for (groupID = 0; groupID < blocks; groupID++)
 	{
 		float d_Bins[threads][3];
 		for (localID =0; localID < threads; localID++)
@@ -161,11 +153,11 @@ int main(int argc, char* argv[])
         		seeds[1] = 180+rand();
         		seeds[2] = 180+rand();
         		seeds[3] = 180+rand();
-			Gaussian1DIntegrator(results, globalID, localID,seeds, args, d_Bins);
+			Gaussian1DIntegrator(results, groupID, localID,seeds, args, d_Bins);
 			blocksum += d_Bins[localID][2];
 			}
-		results[globalID] = blocksum*(high-low)/(threads*blocks);
-		sum += results[globalID];
+		results[groupID] = blocksum*(high-low)/(threads*blocks);
+		sum += results[groupID];
 	}
 	time2 = get_time();
 	free(results);

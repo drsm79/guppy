@@ -57,12 +57,12 @@ __kernel void Gaussian1DIntegrator(
 	float l_SD = args[4];	
  	float l_LOW = args[5];					//local lower and upper limits to integrate between
 	float   l_HIGH = args[6];
-   	float bl_low, bl_high;					//local limits of the block
+	float th_low, th_high;
 	float l_BLOCKWIDTH = (l_HIGH-l_LOW)/l_BLOCKS;		//width of the block
    	float l_THREADWIDTH = l_BLOCKWIDTH/l_THREADS;		//width of a bin within the block
 	unsigned z1,z2,z3,z4;					//local seeds for random number generator, unique to thread
 	float temp;
-	uint stride;
+	int stride;
 
 	//initialise seeds from global memory
 	z1 = d_Seed[globalID][0];
@@ -70,51 +70,46 @@ __kernel void Gaussian1DIntegrator(
    	z2 = d_Seed[globalID][2];
    	z3 = d_Seed[globalID][3];
 
-	//initialise local memory
-	for (iBin=0; iBin < l_THREADS; iBin++)
-		{
-		d_Bins[iBin][0] = 0;
-		d_Bins[iBin][1] = 0;
-		d_Bins[iBin][2] = 0;
-		}
+	d_Bins[localID][0] = 0;
+	d_Bins[localID][1] = 0;
+	d_Bins[localID][2] = 0;
 
 	//Get the dimensions of this workgroup;
-	bl_low = (groupID*l_BLOCKWIDTH)+l_LOW;
-	bl_high = ((groupID+1)*l_BLOCKWIDTH)+l_LOW;
+	th_low = (globalID*l_THREADWIDTH)+l_LOW;
+	th_high = ((globalID+1)*l_THREADWIDTH)+l_LOW;
 
 	//loop over the random number generation
  	for (iRand=0;iRand<l_NPERTHREAD;iRand+=1)
 		{
 		//Get uniform random number, and scale to range [l_LOW, l_HIGH]
 		rf = HybridTaus(&z1,&z2,&z3,&z4);
-		rf = ScaleRange(rf, bl_low, bl_high);
+		rf = ScaleRange(rf, th_low, th_high);
 		//Bin the number
-		if ((rf>bl_low) && (rf<=bl_high))
-			for (iBin=0; iBin < l_THREADS; iBin++)
-				{
-				//Put number in correct bin
-				if ((rf > (iBin*l_THREADWIDTH)+bl_low) && (rf <= ((iBin+1)*l_THREADWIDTH)+bl_low))
+		if ((rf>th_low) && (rf<=th_high))
 					{
 					//bin the number
-					barrier(CLK_LOCAL_MEM_FENCE);
-					d_Bins[iBin][0] += 1;
-					d_Bins[iBin][1] += Gauss(rf, l_MEAN, l_SD);
-					d_Bins[iBin][2] = d_Bins[iBin][1]/d_Bins[iBin][0];
-					break;
+					d_Bins[localID][0] += 1;
+					d_Bins[localID][1] += Gauss(rf, l_MEAN, l_SD);
+					if (d_Bins[localID][0] != 0)
+					d_Bins[localID][2] = d_Bins[localID][1]/d_Bins[localID][0];
 					}
-				}
 		}
 
-
-//no reduction, just copies local memory to global
-
-		if (localID ==0) for (iBin=0; iBin< l_THREADS; iBin++)
+	//GPU reduction within the block
+	for (stride = get_local_size(0)/2; stride > 0; stride /= 2)
+		{
+		barrier(CLK_LOCAL_MEM_FENCE);
+		if (localID < stride)
 			{
-			barrier(CLK_LOCAL_MEM_FENCE);
-			d_Results[groupID*l_THREADS+iBin]  =d_Bins[iBin][2]*l_THREADWIDTH;
+			d_Bins[localID][2] += d_Bins[localID+stride][2];
 			}
 		
+		}	
 
-
+	if (localID ==0)
+		{
+		d_Results[groupID] = d_Bins[0][2]*l_THREADWIDTH;
+		barrier(CLK_LOCAL_MEM_FENCE);
+		}
 }
 

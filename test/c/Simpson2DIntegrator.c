@@ -1,4 +1,4 @@
-
+\
 #include <stdio.h>
 #include <math.h>
 #include <stdlib.h>
@@ -38,7 +38,7 @@ return temp;
 void SimpsonIntegrator( 
    	float * results, 
 	float * x,
-   	float * c,
+   	int * c,
    	int groupID, int localID,
    	const float* args)
 {
@@ -54,68 +54,70 @@ l_x = x[globalID];
 results[globalID] = fnGauss(l_x, l_mean, l_sd)*c[globalID];
 }
 
+int MatrixValue(int i1, int i2, int i3, int index, int size)
+{
+if ((index==0) || (index ==size-1))
+	return i1;
+else if (index % 2 == 0)
+	return i2;
+else
+	return i3;
+
+} 
 
 int main(int argc, char* argv[])
 	{
 	float *results;
 	float *args;
-	int groupID, localID,  i;
-	int threads = 256;			//change the threads per block
-	int blocks =128;				//change the number of blocks
-	float low = -1.0;			//lower limit
-	float high = 1.0;			//upper limit
-	int N = blocks*threads;
+	int groupID, localID,  i,j;
+	int threadsX = 12, threadsY = 12;			//change the threads per block
+	int blocksX =2, blocksY =2;
+	float xlow = -1.0;			//lower limit
+	float xhigh = 1.0;			//upper limit
+	float ylow = -2.0;
+	float yhigh = 2.0;
+
+	int Nx = blocksX*threadsX;
+	int Ny = blocksY*threadsY;
 	float mean = 0.0;
 	float sd = 1.0;
 	float *x;
-	float *c;
-	float h = (high-low)/N;
+	int **c;
+	float h,k;
+
 	static int coef = 0;
 	//Create xi array
-	x = (float *)malloc(N*sizeof(float));
-	c = (float *)malloc(N*sizeof(float));
-	for (i = 0; i<N; i++)
+
+	//Create the Coefficients memory
+	c = (int **)malloc(Ny*sizeof(int*));
+	for (i=0; i<Ny; i++)
 		{
-		x[i] = low+i*h;
-		if ((i==0) || (i == N-1))
-			c[i] = 1;
-		else if (coef == 0)
-			c[i] = 2;
-		else
-			c[i] = 4;
-		coef = 1-coef;
+		c[i] = (int *)malloc(sizeof(int)*Nx);
 		}
-
-	//set the arguments
-	args = (float *)malloc(sizeof(float)*3);
-	args[0] = mean;
-	args[1] = sd;
-	args[2] = threads;
-
-	float sum=0.0;
-	double time1, time2;	
-	//loop over each block
-	results = (float *)malloc(sizeof(float)*N);
-	time1= get_time();
-	for (groupID = 0; groupID < blocks; groupID++)
-	{
-		for (localID = 0; localID < threads; localID++)
+	
+	//Populate grid
+	for (i=0; i<Ny; i++)
+		{
+		for (j=0; j<Nx; j++)
 			{
-			SimpsonIntegrator(results, x, c, groupID, localID, args);
+			if ((i==0) || (i==Ny-1))
+				c[i][j] = MatrixValue(1,2,4,j,Nx);
+			else if (i % 2 == 0)
+				//print a 2,8,4,8...2 row
+				c[i][j] = MatrixValue(2,8,4,j,Nx);
+			else
+				//print a 4, 16, 8, 16....4 row
+				c[i][j] = MatrixValue(4,16,8,j,Nx);
+			printf("  %d", c[i][j]);
 			}
-	}
-
-	for (i=0; i<N; i++)
-		{
-		sum += results[i];
+		printf("\n");
 		}
-	sum *=h/3;
-	time2 = get_time();
-	free(results);
-		
-free(args);
-free(x);
-free(c);
-printf("Integral between %f and %f is %f, calculated in %f seconds\n", low, high, sum, time2);
+
+for (i=0; i<Ny; i++)
+	{
+	free((void *)c[i]);
+	}
+free((void *)c);
+//printf("Integral between %f and %f is %f, calculated in %f seconds\n", low, high, sum, time2);
 return 1;
 }

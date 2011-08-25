@@ -13,8 +13,8 @@ class Random_t(TimedTest):
 	#Run the kernel
 		self.mean=0.0
 		self.sd=1.0
-		self.low=0.0
-		self.high=0.52
+		self.low=-1.0
+		self.high=1.0
 		self.blocks = 128
 		self.threads = 256
 		self.shape=(self.blocks,)	

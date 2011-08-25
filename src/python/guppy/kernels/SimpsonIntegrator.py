@@ -36,7 +36,7 @@ class SimpsonIntegrator(Kernel):
 		#Calculate kernel variables
 	       	self.global_size = (threads*blocks,)
 		self.local_size = (threads,)
-		self.resultshape = (blocks*threads,)	
+		self.resultshape = (blocks,)	
 		self.h = float(high-low)/float(blocks*threads)	
 
 		#set the writeable output array to hold the random numbers
