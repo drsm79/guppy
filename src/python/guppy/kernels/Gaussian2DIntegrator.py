@@ -35,7 +35,6 @@ class Gaussian2DIntegrator(Kernel):
 		#	
 
 		TrialsPerThread = math.ceil(float(trials)/float(globalsize[0]*globalsize[1]))
-		print TrialsPerThread
 	       	self.global_size = (globalsize[0],globalsize[1])
 		self.resultlength = globalsize[0]*globalsize[1]*bincount[0]*bincount[1]
 		self.resultshape = (self.resultlength,3)	
@@ -64,5 +63,4 @@ class Gaussian2DIntegrator(Kernel):
 		#Create empty array to output the random numbers result from device-->host
 		result_arr = numpy.empty(self.resultshape, dtype=numpy.float32)
 		cl.enqueue_copy(self.queue, result_arr, self.buffers[0])		
-		print sum(result_arr)[2] * self.binarea/(self.global_size[0]*self.global_size[1])
-		print result_arr
+		return sum(result_arr)[2] * self.binarea/(self.global_size[0]*self.global_size[1])

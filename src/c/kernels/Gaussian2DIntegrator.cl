@@ -28,8 +28,9 @@ float HybridTaus(unsigned *z1,unsigned *z2,unsigned *z3,unsigned *z4)
      );
   }
 
-float ScaleRange(float u1, float low, float range)
+float ScaleRange(float u1, float low, float high)
 {
+float range = high-low;
 return (u1*range)+low;
 }
 
@@ -54,42 +55,34 @@ __kernel void Gaussian2DIntegrator(
    __global unsigned (*seeds)[4],
    __global const float* args)
 {
-	GaussVars_t xGauss, yGauss;
-	//Get 1D global index from 2 dimensional workgroups
-	int gid = get_global_size(0)*get_global_id(1) + get_global_id(0);
-	int iRand, iBin_x, iBin_y;					//for loop variables
-   	int i;
-	float rfx, rfy;						//random float (rf)
- 	int TrialsPerThread = args[0];				//local, number of randoms produced by this thread
+	GaussVars_t xGauss, yGauss;							// structs to hold the means, sd and range for each variable
+	int gid = get_global_size(0)*get_global_id(1) + get_global_id(0);		//1D global index for 'flattened' 2D array
+	int iRand, iBin_x, iBin_y;							//for loop variables
+	float rfx, rfy;									//random x,y floats (rf)
+ 	int TrialsPerThread = 	args[0];						//number of random numbers produced by this thread
+	xGauss.mean = 	 	args[1];						//Gaussian Variables
+	xGauss.sd =		args[2];						// ...
+	xGauss.low = 		args[3];						// ...
+	xGauss.high = 		args[4];						// ...
+	yGauss.mean = 		args[5];						// ...
+	yGauss.sd = 		args[6];						// ...	
+	yGauss.low = 		args[7];						// ...
+	yGauss.high = 	 	args[8];						// ...
+	int bincount_x = 	args[9];						//number of bins in x dimension
+	int bincount_y = 	args[10];						//number of bins in y dimension
+	float binwidth_x = (xGauss.high-xGauss.low)/bincount_x;				//width of one bin in x direction
+  	float binwidth_y = (yGauss.high-yGauss.low)/bincount_y;				//width of one bin in the y direction
+	unsigned z1,z2,z3,z4;								//local seeds for random number generator, unique to thread
+	int binindex;									//1D index to each bin, from 'flattened' 2D array of bins	
+	int index;									//1D index to memory from 'flattened' 2D arrays of threads/bins
 
-	//Gaussian Variables
-	xGauss.mean = args[1];
-	xGauss.sd = args[2];
-	xGauss.low = args[3];
-	xGauss.high = args[4];
-
-	yGauss.mean = args[5];
-	yGauss.sd = args[6];
-	yGauss.low = args[7];
-	yGauss.high = args[8];
-
-	int bincount_x = args[9];
-	int bincount_y = args[10];
-
-	float binwidth_x = (xGauss.high-xGauss.low)/bincount_x;		//width of the block
-  	float binwidth_y = (yGauss.high-yGauss.low)/bincount_y;
-
-	unsigned z1,z2,z3,z4;					//local seeds for random number generator, unique to thread
 	//initialise seeds from global memory
 	z1 = seeds[gid][0];
  	z2 = seeds[gid][1];
         z3 = seeds[gid][2];
         z4 = seeds[gid][3];
 
-	int index;
-	int binindex;
-	int t1=0, t2=0,t3=0;
-
+	//Repeat for the required number of trials
 	for (iRand=0;iRand<TrialsPerThread;iRand+=1)
 		{
 		//Get uniform random number, and scale to range [l_LOW, l_HIGH]
@@ -97,33 +90,28 @@ __kernel void Gaussian2DIntegrator(
 		rfx = ScaleRange(rfx, xGauss.low, xGauss.high);
 		rfy = HybridTaus(&z1, &z2, &z3, &z4);
 		rfy = ScaleRange(rfy, yGauss.low, yGauss.high);
+		//loop over the x direction
 		for (iBin_x =0; iBin_x < bincount_x; iBin_x++)
 			{
-			//if ((rfx > (iBin_x*binwidth_x)+xGauss.low) && (rfx <= ((iBin_x+1)*binwidth_x)+xGauss.low))
-			//	{
+			//test for correct x bin
+			if (rfx > iBin_x*binwidth_x+xGauss.low && rfx <= (iBin_x+1)*binwidth_x+xGauss.low)
+				{
+				//loop over the y direction
 				for (iBin_y = 0; iBin_y < bincount_y; iBin_y++)
 					{
-   					binindex  = (iBin_y*bincount_x)+iBin_x;
-                                       	index = (gid*bincount_x*bincount_y) + binindex;
-					if (index > t1) t1 = index;
-					if (binindex > t2) t2 = binindex;
-					if (gid > t3) t3 = gid;
-					d_Results[index][0] = t1;
-                                        d_Results[index][1] = t2;
-                                        d_Results[index][2] = bincount_y;
-
-					//if ((rfy > (iBin_y*binwidth_y)+yGauss.low) && (rfy <= ((iBin_y+1)*binwidth_y)+yGauss.low))
-					//	{
-					//	Update the bin
-					//	binindex  = iBin_y*bincount_x +iBin_x; 
-					//	index = gid*bincount_x*bincount_y + binindex;
-					//	d_Results[index][0] += 1;
-					//	d_Results[index][1] += Gauss2D(rfx, rfy, xGauss, yGauss);
-					//	d_Results[index][2] = d_Results[index][1]/d_Results[index][0];						
-					//	break;
-					//	}
-			//		}
-				break;			
+					//test for correct y bin
+					if (rfy > iBin_y*binwidth_y+yGauss.low && rfy <= (iBin_y+1)*binwidth_y+yGauss.low)
+						{
+						//calculate indexes and update global memory
+   						binindex  = (iBin_y*bincount_x)+iBin_x;
+                                		index = (gid*bincount_x*bincount_y) + binindex;
+						d_Results[index][0] += 1;
+                                		d_Results[index][1] += Gauss2D(rfx, rfy, xGauss, yGauss);
+                                		d_Results[index][2] = d_Results[index][1]/d_Results[index][0];
+						break;
+						}
+					}
+				break;				
 				}
 			}
 		}
