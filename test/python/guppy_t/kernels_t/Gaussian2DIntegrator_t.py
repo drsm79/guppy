@@ -11,22 +11,22 @@ class Random_t(TimedTest):
 
 	def test_time(self):
 	#Run the kernel
-		self.n_rands = 30000
+		self.trials = 1000000
 		self.xmean=0.0
 		self.xsd=1.0
-		self.xlow=-0.6
-		self.xhigh=0.4
+		self.xlow=-1.0
+		self.xhigh=1.0
 		self.ymean=0.0
 		self.ysd=1.0
-		self.ylow=-0.8
-		self.yhigh=0.1
+		self.ylow=-1.0
+		self.yhigh=1.0
 
-		self.blocks = 32
-		self.threads = 256
-		self.shape=(self.blocks,)	
+		self.globalsize = (32,32)
+		self.bincount = (10,10)
+
 		Int = Gaussian2DIntegrator()	
        		self.start_timer()
-		self.result = Int(blocks=self.blocks, threads=self.threads, block_rands=self.n_rands, \
+		self.result = Int(globalsize=self.globalsize, bincount=self.bincount, trials=self.trials, \
 		 		 xmean=self.xmean, xsd=self.xsd, xlow=self.xlow, xhigh=self.xhigh,     \
 				 ymean=self.ymean, ysd=self.ysd, ylow=self.ylow, yhigh=self.yhigh)
 		self.stop_timer()

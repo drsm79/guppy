@@ -11,7 +11,7 @@ class Gaussian1DIntegrator(Kernel):
     	"""
 	kernel_file = "Gaussian1DIntegrator.cl"
 
-    	def _create_buffers(self, block_rands=120000,  blocks=64, threads=128, mean=0, sd=1, low=-1, high=1, seeds=None):
+    	def _create_buffers(self, trials=1200, globalsize=128, bincount=100, mean=0, sd=1, low=-1, high=1, seeds=None):
 		"""
         	Define the necessary input and ouptut Buffer objects for the Kernel,
         	store in self.input_buffers and self.output_buffers. Subclasses should
@@ -24,23 +24,20 @@ class Gaussian1DIntegrator(Kernel):
         	#       d_Result = the output array of random numbers
         	#       d_seed = four random numbers in an array
 		#	float* args: list of necessary parameters bundled together 
-        	#       args[0]: nPerThread = number of random numbers to generate per thread
-        	#       args[1]: Blocks = number of blocks used
-		#	args[2]: Threads = number of threads per block
+        	#       args[0]: TrialsPerThread = number of random numbers to generate per thread
+        	#       args[1]: BinCount = number of bins
+		#	args[2]: TargetTrials
 		#	args[3]: Mean
 		#	args[4]: Standard Deviation
 		#	args[5]: Lower Limit
 		#	args[6]: Upper Limit
 		#
 	
-		#Calculate kernel variables
-		nPerThread = math.ceil(float(block_rands)/float(threads))
-	       	self.global_size = (threads*blocks,)
-		self.local_size = (threads,)
-		self.resultshape = (blocks,)	
-	
-
-
+		TrialsPerThread = math.ceil(float(trials)/float(globalsize))
+		self.resultshape = (bincount*globalsize, 3)	
+		self.globalsize = (globalsize,)
+		self.binwidth = float(high-low)/float(bincount)
+		
 		#set the writeable output array to hold the random numbers
 		self.result = numpy.empty(shape=self.resultshape, dtype=numpy.float32)
 		output_buff = cl.Buffer(self.ctx, mf.READ_WRITE | mf.COPY_HOST_PTR, hostbuf=self.result)
@@ -48,7 +45,7 @@ class Gaussian1DIntegrator(Kernel):
 
 		#Generate seeds, required to be >180 by HybridTaus algorithm 
   	      	if not seeds:
-	            	self.seeds = numpy.random.randint(180, 1000000, (threads*blocks, 4)).astype(numpy.uint32)
+	            	self.seeds = numpy.random.randint(180, 1000000, (globalsize, 4)).astype(numpy.uint32)
        	 	else:
             		self.seeds = seeds
         	seed_buffer = cl.Buffer(self.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=self.seeds)
@@ -56,21 +53,19 @@ class Gaussian1DIntegrator(Kernel):
 
 		#write arguments to buffer as nPerRNG
 
-	        arg_arr = numpy.array([nPerThread, blocks, threads,mean, sd, low, high], dtype=numpy.float32)
+	        arg_arr = numpy.array([TrialsPerThread, bincount,trials,  mean, sd, low, high], dtype=numpy.float32)
 		arg_bufr = cl.Buffer(self.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=arg_arr)
 	        self.buffers.append(arg_bufr)
-
-		#Assign Local Memory Arrays
-		loc_arr = numpy.empty(shape=(threads,3), dtype=numpy.float32)
-		self.buffers.append(cl.LocalMemory(loc_arr.nbytes))
 
 	def _run_kernel(self):
         	
 		"""
         	Run the kernel (self.program). Subclasses should overwrite this.
         	"""
-        	self.program.Gaussian1DIntegrator(self.queue, self.global_size, self.local_size, *self.buffers)
+        	self.program.Gaussian1DIntegrator(self.queue, self.globalsize, None, *self.buffers)
 		#Create empty array to output the random numbers result from device-->host
 		result_arr = numpy.empty(self.resultshape, dtype=numpy.float32)
 		cl.enqueue_copy(self.queue, result_arr, self.buffers[0])		
-		return sum(result_arr)
+		print result_arr
+		return sum(result_arr)[2]*self.binwidth/self.globalsize[0]
+		

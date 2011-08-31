@@ -33,83 +33,65 @@ float Gauss(float x, const float mean, const float sd)
 float pwr, temp;
 const float PI = 3.14159265358979f;
 
-pwr = pow(x-mean, 2)/(-2*pow(sd,2));
+pwr = x-mean;
+pwr *= pwr;
+pwr /= -2*sd*sd;
 temp = exp(pwr);
-temp /= sqrt(2*PI*pow(sd,2));
+temp /= sd*sqrt(2*PI);
 return temp;
 }
 
 __kernel void Gaussian1DIntegrator( 
-   __global float * d_Results,
+   __global float (*d_Results)[3],
    __global unsigned int (*d_Seed)[4],
-   __global const float* args,
-   __local float (* d_Bins)[3])
+   __global const float* args)
 {
-	int globalID = get_global_id(0);			//global id for this thread
-   	int localID = get_local_id(0);				//local id for within the workgroup
-	int groupID = get_group_id(0);				//group id of the workgroup
+	int gid = get_global_id(0);			//global id for this thread
 	int iRand, iBin;					//for loop variables
    	float rf;						//random float (rf)
-   	int l_NPERTHREAD = args[0];				//local, number of randoms produced by this thread
-   	int   l_BLOCKS = args[1];                               //Number of concurrent workgroups
-        int   l_THREADS = args[2];                              //Number of threads within the workgroup
-	float l_MEAN =args[3];					//local mean and standard deviation of the Gaussian
-	float l_SD = args[4];	
- 	float l_LOW = args[5];					//local lower and upper limits to integrate between
-	float   l_HIGH = args[6];
-	float th_low, th_high;
-	float l_BLOCKWIDTH = (l_HIGH-l_LOW)/l_BLOCKS;		//width of the block
-   	float l_THREADWIDTH = l_BLOCKWIDTH/l_THREADS;		//width of a bin within the block
+   	int TrialsPerThread = args[0];				//local, number of randoms produced by this thread
+	int bincount = args[1];
+	int TargetTrials = args[2];
+	float mean =args[3];					//local mean and standard deviation of the Gaussian
+	float sd = args[4];	
+ 	float low = args[5];					//local lower and upper limits to integrate between
+	float high = args[6];
 	unsigned z1,z2,z3,z4;					//local seeds for random number generator, unique to thread
-	float temp;
-	int stride;
-
+	float binwidth = (high-low)/bincount;
+	int index = 0;
+	
 	//initialise seeds from global memory
-	z1 = d_Seed[globalID][0];
-   	z1 = d_Seed[globalID][1];
-   	z2 = d_Seed[globalID][2];
-   	z3 = d_Seed[globalID][3];
-
-	d_Bins[localID][0] = 0;
-	d_Bins[localID][1] = 0;
-	d_Bins[localID][2] = 0;
-
-	//Get the dimensions of this workgroup;
-	th_low = (globalID*l_THREADWIDTH)+l_LOW;
-	th_high = ((globalID+1)*l_THREADWIDTH)+l_LOW;
-
+	z1 = d_Seed[gid][0];
+   	z2 = d_Seed[gid][1];
+   	z3 = d_Seed[gid][2];
+   	z4 = d_Seed[gid][3];
+	// initialise memory to zero
+ 	for (iBin=0; iBin<bincount; iBin++)
+              {
+               index = gid*bincount+iBin;
+               d_Results[index][0] = 0;
+               d_Results[index][1] = 0;
+               d_Results[index][2] = 0;
+              }
 	//loop over the random number generation
- 	for (iRand=0;iRand<l_NPERTHREAD;iRand+=1)
+ 	for (iRand=0;iRand<TrialsPerThread;iRand+=1)
 		{
 		//Get uniform random number, and scale to range [l_LOW, l_HIGH]
 		rf = HybridTaus(&z1,&z2,&z3,&z4);
-		rf = ScaleRange(rf, th_low, th_high);
+		rf = ScaleRange(rf, low, high);
 		//Bin the number
-		if ((rf>th_low) && (rf<=th_high))
+		if ((rf>low) && (rf<=high))
+			for (iBin=0; iBin<bincount; iBin++)
+				{
+				if ((rf > (iBin*binwidth)+low) && (rf <= ((iBin+1)*binwidth)+low))
 					{
-					//bin the number
-					d_Bins[localID][0] += 1;
-					d_Bins[localID][1] += Gauss(rf, l_MEAN, l_SD);
-					if (d_Bins[localID][0] != 0)
-					d_Bins[localID][2] = d_Bins[localID][1]/d_Bins[localID][0];
+					index = gid*bincount+iBin; 
+					d_Results[index][0] += 1;
+					d_Results[index][1] += Gauss(rf, mean, sd);
+					d_Results[index][2] = d_Results[index][1]/d_Results[index][0];
+					break;
 					}
-		}
-
-	//GPU reduction within the block
-	for (stride = get_local_size(0)/2; stride > 0; stride /= 2)
-		{
-		barrier(CLK_LOCAL_MEM_FENCE);
-		if (localID < stride)
-			{
-			d_Bins[localID][2] += d_Bins[localID+stride][2];
-			}
-		
-		}	
-
-	if (localID ==0)
-		{
-		d_Results[groupID] = d_Bins[0][2]*l_THREADWIDTH;
-		barrier(CLK_LOCAL_MEM_FENCE);
+				}
 		}
 }
 

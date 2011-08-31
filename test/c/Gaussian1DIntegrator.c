@@ -52,9 +52,11 @@ float fnGauss(float x, const float mean, const float sd)
 float pwr, temp;
 const float PI = 3.14159265358979f;
 
-pwr = pow(x-mean, 2)/(-2*pow(sd,2));
+pwr = x-mean;
+pwr *= pwr;
+pwr /= -2*sd*sd;
 temp = exp(pwr);
-temp /= sqrt(2*PI*pow(sd,2));
+temp /= sd*sqrt(2*PI);
 return temp;
 }
 
@@ -80,7 +82,6 @@ void Gaussian1DIntegrator(
    	float l_THREADWIDTH = l_BLOCKWIDTH/l_THREADS;		//width of a bin within the block
 	unsigned z1,z2,z3,z4;					//local seeds for random number generator, unique to thread
 	float temp;
-	unsigned int stride;
 
 	//initialise seeds from global memory
 	z1 = d_Seed[0];
@@ -110,15 +111,14 @@ void Gaussian1DIntegrator(
 		}
 }
 
-
 int main(int argc, char* argv[])
 	{
 	float *results;
 	float *args;
 	unsigned  seeds[4];
 	int groupID, localID,  i;
-	int threads = 256;			//change the threads per block
-	int blocks =32;				//change the number of blocks
+	int threads = 1024;			//change the threads per block
+	int blocks =1;				//change the number of blocks
 	float low = -1.0;			//lower limit
 	float high = 1.0;			//upper limit
 
@@ -163,6 +163,6 @@ int main(int argc, char* argv[])
 	free(results);
 		
 free(args);
-printf("Integral between %f and %f is %f, calculated in %f seconds\n", low, high, sum, time2);
+printf("Integral between %f and %f is %f, calculated in %f seconds across %d threads\n", low, high, sum, time2, blocks*threads);
 return 1;
 }
