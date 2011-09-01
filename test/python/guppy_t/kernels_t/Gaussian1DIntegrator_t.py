@@ -11,13 +11,13 @@ class Random_t(TimedTest):
 
 	def test_time(self):
 	#Run the kernel
-		self.trials = 120000000
+		self.trials = 25000000
 		self.mean=0.0
 		self.sd=1.0
 		self.low=-1.0
 		self.high=1.0
 		self.globalsize = 8192
-		self.bincount = 5
+		self.bincount = 1
 		Int = Gaussian1DIntegrator()	
        		self.start_timer()
 		self.result = Int(trials=self.trials, globalsize=self.globalsize, bincount =self.bincount, \

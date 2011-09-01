@@ -20,7 +20,6 @@ class Random_t(TimedTest):
 		self.ysd=1.0
 		self.ylow=-1.0
 		self.yhigh=1.0
-
 		self.globalsize = (32,32)
 		self.bincount = (10,10)
 

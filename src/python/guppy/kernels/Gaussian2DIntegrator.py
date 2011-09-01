@@ -20,20 +20,30 @@ class Gaussian2DIntegrator(Kernel):
        	 	"""
         	mf = cl.mem_flags
 
-        	# The GPUrand function takes four inputs:
+        	# The Gaussian 2D integrator function takes the following parameters in its argument vector:
         	#
         	#       d_Result = the output array of random numbers
         	#       d_seed = four random numbers in an array
 		#	float* args: list of necessary parameters bundled together 
-        	#       args[0]: nPerThread = number of random numbers to generate per thread
-        	#       args[1]: BinCount_x
-		#	args[2]: BinCount_y
-		#	args[3]: x Mean
-		#	args[4]: x Standard Deviation
-		#	args[5]: x Lower Limit
-		#	args[6]: x Upper Limit
-		#	
+        	#       args[0]: TrialsPerThread = number of random numbers to generate per thread
+        	#       args[1]: x mean
+		#	args[2]: x standard deviation
+		#	args[3]: x low
+		#	args[4]: x high
+		#	args[5]: y mean
+		#	args[6]: y standard deviation
+		#	args[7]: y low
+		#	args[8]: y high
+		#	args[9]: x bincount
+		#	args[10]: y bincount	
 
+		#Ensure that globalsize and bincount tuples are the right length
+		if len(bincount) < 2:
+			bincount = (bincount[0], bincount[0])
+		if len(globalsize) < 2:
+			globalsize = (globalsize[0], globalsize[0])
+
+	
 		TrialsPerThread = math.ceil(float(trials)/float(globalsize[0]*globalsize[1]))
 	       	self.global_size = (globalsize[0],globalsize[1])
 		self.resultlength = globalsize[0]*globalsize[1]*bincount[0]*bincount[1]
@@ -49,7 +59,8 @@ class Gaussian2DIntegrator(Kernel):
 	        self.seeds = numpy.random.randint(180, 1000000, size=(self.resultlength, 4)).astype(numpy.uint32)
         	seed_buffer = cl.Buffer(self.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=self.seeds)
 		self.buffers.append(seed_buffer)
-
+		
+		#Write argument array to global memory
 	        arg_arr = numpy.array([TrialsPerThread, xmean, xsd, xlow, xhigh, ymean, ysd, ylow, yhigh, bincount[0], bincount[1]], dtype=numpy.float32)
 		arg_bufr = cl.Buffer(self.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=arg_arr)
 	        self.buffers.append(arg_bufr)
@@ -60,7 +71,10 @@ class Gaussian2DIntegrator(Kernel):
         	Run the kernel (self.program). Subclasses should overwrite this.
         	"""
         	self.program.Gaussian2DIntegrator(self.queue, self.global_size, None, *self.buffers)
+		
 		#Create empty array to output the random numbers result from device-->host
 		result_arr = numpy.empty(self.resultshape, dtype=numpy.float32)
 		cl.enqueue_copy(self.queue, result_arr, self.buffers[0])		
+		
+		#Integrate the result and return single value to the caller
 		return sum(result_arr)[2] * self.binarea/(self.global_size[0]*self.global_size[1])

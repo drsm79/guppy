@@ -1,3 +1,11 @@
+//////////////////////////////////////////
+// Gaussian 2D Integrator kernel	//
+// Joe Jenkinson jj9854@bris.ac.uk	//
+// August 2011				//
+//////////////////////////////////////////
+
+// Structs
+
 typedef struct
 	{
         float mean;
@@ -6,6 +14,8 @@ typedef struct
         float low;
         } GaussVars_t;
  
+//Shared Functions
+
 unsigned TausStep(unsigned *z, int S1, int S2, int S3, unsigned M)
 {
    unsigned b=(((*z << S1) ^ *z) >> S2);
@@ -17,6 +27,7 @@ unsigned LCGStep(unsigned *z, unsigned A, unsigned C)
 return *z=(A**z+C);
 }
 
+//Random number generator. Requires 4 unsigned seeds >180 
 float HybridTaus(unsigned *z1,unsigned *z2,unsigned *z3,unsigned *z4)
  {
   // Combined period is lcm(p1,p2,p3,p4)~ 2^121
@@ -28,12 +39,14 @@ float HybridTaus(unsigned *z1,unsigned *z2,unsigned *z3,unsigned *z4)
      );
   }
 
+//Scale a [0,1] number to a number between [low, high]
 float ScaleRange(float u1, float low, float high)
 {
 float range = high-low;
 return (u1*range)+low;
 }
 
+//2D Gaussian function, Gaussian(x,y) 
 float Gauss2D(float x, float y, const GaussVars_t xGauss, const GaussVars_t yGauss)
 {
 float a, b, temp;
@@ -49,6 +62,8 @@ temp = exp(a);
 temp /= xGauss.sd*yGauss.sd*2*PI;
 return temp;
 }
+
+// Kernel function
 
 __kernel void Gaussian2DIntegrator(
    __global float (*d_Results)[3],
