@@ -12,6 +12,7 @@ class Kernel:
     and manages running that kernel.
     """
     kernel_file = ''
+    function_string = ''
 
     def __init__(self, cl_file_location='../../../c/kernels', interactive=True):
         """
@@ -27,6 +28,10 @@ class Kernel:
             filename = os.path.join(base, cl_file_location, self.kernel_file)
             # log here print os.path.abspath(filename)
             self.kernel_string = open(filename).read()
+	    if self.function_string:
+		self.kernel_string = self.function_string+'\n'+self.kernel_string
+	    else:
+		self.function_string = ""
         else:
             self.kernel_string = ""
         self.ctx = cl.create_some_context(interactive=interactive)
