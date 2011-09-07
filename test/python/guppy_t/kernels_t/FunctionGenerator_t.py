@@ -32,9 +32,9 @@ class FunctionGenerator_t(unittest.TestCase):
 		# functionality for non-integer divisions, you will need to calculate the x,y,z values manually to build a checksum 
 
 		#Three arbitrary values between 0..9, to create a checksum to compare local result with gpu result
-		self.x = 3
-		self.y = 8
-		self.z = 2
+		self.x0 = 3
+		self.x1 = 8
+		self.x2 = 2
 
 	def test_add3D(self):
 		print "\naddition test..."		
@@ -42,8 +42,8 @@ class FunctionGenerator_t(unittest.TestCase):
 		FG = FunctionGenerator(self.function_string, 3)	
 		add3Dresult = FG(globalsize=self.globalsize, grid=self.grid)
 		#Check addition result
-		checksum = self.x+self.y+self.z 
-		self.assertEquals(checksum, add3Dresult[self.x,self.y,self.z])
+		checksum = self.x0+self.x1+self.x2 
+		self.assertEquals(checksum, add3Dresult[self.x0,self.x1,self.x2])
 
 	def test_sub3D(self):
 		print "\nsubtraction test..."
@@ -51,8 +51,8 @@ class FunctionGenerator_t(unittest.TestCase):
                 FG = FunctionGenerator(self.function_string, 3)
                 sub3Dresult = FG(globalsize=self.globalsize, grid=self.grid)
                 #Check subtraction result
-		checksum = self.x-self.y-self.z
-		self.assertEquals(checksum, sub3Dresult[self.x,self.y,self.z])
+		checksum = self.x0-self.x1-self.x2
+		self.assertEquals(checksum, sub3Dresult[self.x0,self.x1,self.x2])
 
 	def test_mul3D(self):
 		print "\nmultiplication test..."
@@ -60,8 +60,8 @@ class FunctionGenerator_t(unittest.TestCase):
                 FG = FunctionGenerator(self.function_string, 3)
                 mul3Dresult = FG(globalsize=self.globalsize, grid=self.grid)
                 #Check multiplication result
-		checksum = self.x*self.y*self.z
-		self.assertEquals(checksum, mul3Dresult[self.x,self.y,self.z])
+		checksum = self.x0*self.x1*self.x2
+		self.assertEquals(checksum, mul3Dresult[self.x0,self.x1,self.x2])
 
 	def test_div3D(self):
 		
@@ -70,9 +70,9 @@ class FunctionGenerator_t(unittest.TestCase):
                 FG = FunctionGenerator(self.function_string, 3)
                 div3Dresult = FG(globalsize=self.globalsize, grid=self.grid)
                 #Check multiplication result
-                checksum = float(self.x)/float(self.y)/float(self.z)
+                checksum = float(self.x0)/float(self.x1)/float(self.x2)
                 #Typically fails due to floating point errors?
-		self.assertEquals(float(checksum), div3Dresult[self.x,self.y,self.z])
+		self.assertEquals(float(checksum), div3Dresult[self.x0,self.x1,self.x2])
 
 	def test_exp3D(self):
 		print "\nexponential test..."
@@ -83,8 +83,8 @@ class FunctionGenerator_t(unittest.TestCase):
 		# Note: when using numpy.exp, ensure that the checksum is same dtype as in
 		# the kernel class i.e. float32.....numpy defaults to float64 otherwise and will fail test
 
-                checksum = numpy.array([float(self.x)+float(self.y)], dtype =numpy.float32) 
-                self.assertEquals(numpy.exp(checksum)[0], exp3Dresult[self.x,self.y,self.z])
-		
+                checksum = numpy.array([float(self.x0)+float(self.x1)], dtype =numpy.float32) 
+                self.assertEquals(numpy.exp(checksum)[0], exp3Dresult[self.x0,self.x1,self.x2])
+
 if __name__ == '__main__':
 	unittest.main()
