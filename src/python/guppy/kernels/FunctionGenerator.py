@@ -5,7 +5,6 @@ from guppy.kernels import Kernel
 import numpy
 import math
 from operator import mul
-import functiongenerator
 
 class FunctionGenerator(Kernel):
 
@@ -28,7 +27,11 @@ class FunctionGenerator(Kernel):
 		self.Threads = reduce(mul, globalsize)
 		self.dtype = numpy.float32		
 
-		self.output_shape = functiongenerator.getoutputshape(grid)
+		n = grid.shape[0]
+		self.output_shape = []
+		for i in range(n):
+			self.output_shape.append(grid[i,2])
+		self.output_shape = tuple(self.output_shape)
 		self.output_size = reduce(mul, self.output_shape)
 		param_arr = grid.flatten().astype(numpy.float32)
 
