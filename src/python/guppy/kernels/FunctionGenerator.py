@@ -24,22 +24,21 @@ class FunctionGenerator(Kernel):
     	
 	def _create_buffers(self, grid, globalsize=(16,16)):
         	mf = cl.mem_flags
-		input_arr = functiongenerator.creategrid(grid)
-		self.output_shape = functiongenerator.getoutputshape(grid)
 		self.global_size = globalsize
 		self.Threads = reduce(mul, globalsize)
 		self.dtype = numpy.float32		
 
-		#Input array, flattened to a 1D array
-		self.input = numpy.array(input_arr).astype(self.dtype)
-		self.input_size = reduce(mul, self.input.shape)
-		#Empty Output array to read results back to
-                self.output_size = self.input_size/self.dim
-		self.output = numpy.empty(shape=(self.output_size,), dtype = self.dtype)
+		self.output_shape = functiongenerator.getoutputshape(grid)
+		self.output_size = reduce(mul, self.output_shape)
+		param_arr = grid.flatten().astype(numpy.float32)
 
-		#Write Input to Buffer
-                input_buff = cl.Buffer(self.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=self.input)
-                self.buffers.append(input_buff)
+		print self.output_shape		
+		self.output = numpy.empty(shape=self.output_shape, dtype = self.dtype)
+
+
+		#Write Param_arr to Buffer
+                param_buff = cl.Buffer(self.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=param_arr)
+                self.buffers.append(param_buff)
 
 		#Write Args to Buffer
 		EvalsPerThread  =  math.ceil(float(self.output_size)/float(self.Threads))
@@ -63,5 +62,5 @@ class FunctionGenerator(Kernel):
 		
 		#Create empty array to output the random numbers result from device-->host
 		cl.enqueue_copy(self.queue, self.output, self.buffers[-1])		
-		result = self.output.reshape(self.output_shape)
+		result = self.output
 		return result		
