@@ -12,7 +12,7 @@ unsigned TausStep(unsigned *z, int S1, int S2, int S3, unsigned M)
 return *z=(A**z+C);
 }
 
- float HybridTaus(float *z1,float *z2,float *z3,float *z4)
+ float HybridTaus(unsigned *z1,unsigned *z2,unsigned *z3,unsigned *z4)
  {
   // Combined period is lcm(p1,p2,p3,p4)~ 2^121
   return 2.3283064365387e-10 * (              // Periods
@@ -24,22 +24,30 @@ return *z=(A**z+C);
   }
 
 
-__kernel void GPUrand(
+__kernel void rndFlat(
    __global float* d_Rand,
-   __global float* d_Seed[], //change
-   const unsigned int nPerRNG,
-   const int RNG_COUNT)
+   __global unsigned int (*d_Seed)[3],
+   __global const unsigned int* nPerRNG,
+   __global const int* RNG_COUNT,
+   __global const int* TARGET)
 {
    int globalID = get_global_id(0);
-   float rfl;
-   float* z1,z2,z3,z4;
-   z1 = d_Seed[globalID + 0];
-   z1 = d_Seed[globalID + 1];
-   z2 = d_Seed[globalID + 2];
-   z3 = d_Seed[globalID + 3];
-   for (int i=0;i<nPerRNG;i++)
-       {
-       d_Rand[globalID+i*RNG_COUNT] = HybridTaus(&z1,&z2,&z3,&z4);
-       }
+   int i, index;
+   int l_nPerRNG, l_RNG_COUNT, l_TARGET; 
+   unsigned z1,z2,z3,z4;
+   z1 = d_Seed[globalID][0];
+   z1 = d_Seed[globalID][1];
+   z2 = d_Seed[globalID][2];
+   z3 = d_Seed[globalID][3];
+   l_nPerRNG = nPerRNG[0];
+   l_RNG_COUNT = RNG_COUNT[0];
+   l_TARGET = TARGET[0];
+ 	for (i=0;i<l_nPerRNG;i++)
+	{
+	index  =globalID+i*l_RNG_COUNT;
+	if (index < l_TARGET)
+   		d_Rand[index] = HybridTaus(&z1,&z2,&z3,&z4);
+	else break;
+	}
 }
 

@@ -2,14 +2,14 @@
 # encoding: utf-8
 
 import unittest
-from guppy.kernels.AddBuffer import AddBuffer
+from guppy.kernels.Array2D import Array2D
 import numpy
 from guppy_t import TimedTest
 
 class AddBuffer_t(unittest.TestCase):
     def testCall(self):
-        buffer_and = AddBuffer()
-        result = buffer_and()
+        arr = Array2D()
+        result = arr()
         print result
 
 if __name__ == '__main__':

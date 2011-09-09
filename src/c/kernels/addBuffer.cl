@@ -5,5 +5,6 @@ __kernel void sum(
 )
 {
 	int gid = get_global_id(0);
-	output[gid] = input_1[gid] + input_2[gid];
+	output[gid] = input_1[gid]+input_2[gid] ;
+
 }
