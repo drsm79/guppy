@@ -48,13 +48,14 @@ class EnvCommand(Command):
 
 
 setup (name = here.split('/')[-1],
-      version = '1.0',
-      maintainer_email = 'hn-cms-wmDevelopment@cern.ch',
-      cmdclass = {
-                  #'test' : TestCommand,
-                  'env': EnvCommand,
-      },
-      # base directory for all our packages
-      package_dir = {'': 'src/python/'},
-      packages = 'guppy',
-      data_files = 'src/c/')
+    version = '1.0',
+    maintainer_email = 'simonmetson at googlemail',
+    cmdclass = {
+             #'test' : TestCommand,
+             'env': EnvCommand,
+    },
+    # base directory for all our packages
+    package_dir = {'': 'src/python/'},
+    packages = ['guppy', 'guppy.kernels'],
+    package_data = {'src/c/kernels/': '*.cl'}
+)
